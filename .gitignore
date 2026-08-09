@@ -1,0 +1,13 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.pdb
+*.log
+*.wdb
+*.wdb.sav
+*.before-pack-*.wdb
+c3-unpacked/
+
