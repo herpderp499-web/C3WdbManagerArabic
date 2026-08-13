@@ -15,6 +15,13 @@ public sealed class MainForm : Form
     private readonly TextBox _packFolder = new();
     private readonly Button _browsePackFolder = new();
     private readonly Button _pack = new();
+    private readonly TextBox _monsterDatPath = new();
+    private readonly TextBox _monsterTextPath = new();
+    private readonly Button _browseMonsterDat = new();
+    private readonly Button _browseMonsterText = new();
+    private readonly Button _decryptMonster = new();
+    private readonly Button _encryptMonster = new();
+    private readonly Label _monsterStatus = new();
     private readonly ListView _results = new();
     private readonly Label _status = new();
     private readonly ProgressBar _progress = new();
@@ -62,13 +69,108 @@ public sealed class MainForm : Form
         _tabs.Padding = new Point(18, 8);
         var unpackTab = new TabPage("فك ملف WDB") { BackColor = Surface, Padding = new Padding(20) };
         var packTab = new TabPage("إعادة بناء WDB") { BackColor = Surface, Padding = new Padding(20) };
+        var monsterTab = new TabPage("Monster.dat") { BackColor = Surface, Padding = new Padding(20) };
         _tabs.TabPages.Add(unpackTab);
         _tabs.TabPages.Add(packTab);
+        _tabs.TabPages.Add(monsterTab);
         Controls.Add(_tabs);
         _tabs.BringToFront();
 
         BuildUnpackTab(unpackTab);
         BuildPackTab(packTab);
+        BuildMonsterTab(monsterTab);
+    }
+
+    private void BuildMonsterTab(Control tab)
+    {
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 9,
+            Padding = new Padding(8),
+            RightToLeft = RightToLeft.Yes
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        tab.Controls.Add(layout);
+
+        var title = new Label
+        {
+            Text = "فك وتشفير Monster.dat لإصدار 5517",
+            Font = new Font("Segoe UI", 15F, FontStyle.Bold),
+            ForeColor = Navy,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleRight
+        };
+        layout.Controls.Add(title, 0, 0);
+        layout.SetColumnSpan(title, 2);
+
+        var help = new Label
+        {
+            Text = "الفك ينتج Monster.txt قابلًا للبحث والتعديل. إعادة التشفير تقرأ البايتات كما هي وتحافظ على صيغة العميل.",
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(70, 80, 95),
+            TextAlign = ContentAlignment.MiddleRight
+        };
+        layout.Controls.Add(help, 0, 1);
+        layout.SetColumnSpan(help, 2);
+
+        AddMonsterLabel(layout, "ملف Monster.dat المشفّر", 2);
+        ConfigureTextBox(_monsterDatPath);
+        layout.Controls.Add(_monsterDatPath, 0, 3);
+        ConfigureBrowseButton(_browseMonsterDat, "اختيار DAT");
+        _browseMonsterDat.Click += BrowseMonsterDat;
+        layout.Controls.Add(_browseMonsterDat, 1, 3);
+
+        var decryptActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Padding(0, 10, 0, 8)
+        };
+        ConfigurePrimaryButton(_decryptMonster, "فك إلى Monster.txt");
+        _decryptMonster.Size = new Size(210, 42);
+        _decryptMonster.Click += async (_, _) => await DecryptMonsterAsync();
+        decryptActions.Controls.Add(_decryptMonster);
+        layout.Controls.Add(decryptActions, 0, 4);
+        layout.SetColumnSpan(decryptActions, 2);
+
+        AddMonsterLabel(layout, "ملف Monster.txt بعد التعديل", 5);
+        ConfigureTextBox(_monsterTextPath);
+        layout.Controls.Add(_monsterTextPath, 0, 6);
+        ConfigureBrowseButton(_browseMonsterText, "اختيار TXT");
+        _browseMonsterText.Click += BrowseMonsterText;
+        layout.Controls.Add(_browseMonsterText, 1, 6);
+
+        var encryptActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Padding(0, 10, 0, 8)
+        };
+        ConfigurePrimaryButton(_encryptMonster, "تشفير إلى Monster.dat");
+        _encryptMonster.Size = new Size(210, 42);
+        _encryptMonster.Click += async (_, _) => await EncryptMonsterAsync();
+        encryptActions.Controls.Add(_encryptMonster);
+        layout.Controls.Add(encryptActions, 0, 7);
+        layout.SetColumnSpan(encryptActions, 2);
+
+        _monsterStatus.Text = "اختر Monster.dat لفكه، أو Monster.txt لإعادة تشفيره.";
+        _monsterStatus.Dock = DockStyle.Top;
+        _monsterStatus.ForeColor = Color.FromArgb(70, 80, 95);
+        _monsterStatus.Padding = new Padding(8, 14, 8, 8);
+        layout.Controls.Add(_monsterStatus, 0, 8);
+        layout.SetColumnSpan(_monsterStatus, 2);
     }
 
     private void BuildUnpackTab(Control tab)
@@ -349,6 +451,172 @@ public sealed class MainForm : Form
         }
     }
 
+    private void BrowseMonsterDat(object? sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "اختر ملف Monster.dat المشفّر",
+            Filter = "Monster.dat (*.dat)|*.dat|كل الملفات (*.*)|*.*",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        _monsterDatPath.Text = dialog.FileName;
+        _monsterTextPath.Text = Path.Combine(
+            Path.GetDirectoryName(dialog.FileName) ?? Environment.CurrentDirectory,
+            Path.GetFileNameWithoutExtension(dialog.FileName) + ".txt");
+        _monsterStatus.Text = "جاهز للفك. الملف الأصلي لن يتم تعديله.";
+    }
+
+    private void BrowseMonsterText(object? sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "اختر Monster.txt بعد التعديل",
+            Filter = "ملفات النص (*.txt)|*.txt|كل الملفات (*.*)|*.*",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        _monsterTextPath.Text = dialog.FileName;
+    }
+
+    private async Task DecryptMonsterAsync()
+    {
+        var input = _monsterDatPath.Text.Trim();
+        if (!File.Exists(input))
+        {
+            ShowError("اختر ملف Monster.dat صحيح أولًا.");
+            return;
+        }
+
+        var suggested = string.IsNullOrWhiteSpace(_monsterTextPath.Text)
+            ? Path.ChangeExtension(input, ".txt")
+            : _monsterTextPath.Text.Trim();
+        using var save = new SaveFileDialog
+        {
+            Title = "احفظ Monster.txt المفكوك",
+            Filter = "ملفات النص (*.txt)|*.txt|كل الملفات (*.*)|*.*",
+            FileName = Path.GetFileName(suggested),
+            InitialDirectory = Path.GetDirectoryName(suggested)
+        };
+        if (save.ShowDialog(this) != DialogResult.OK) return;
+
+        SetMonsterBusy(true, "جارٍ فك Monster.dat...");
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                var encrypted = File.ReadAllBytes(input);
+                var plain = MonsterDatCrypto.Decrypt(encrypted);
+                if (!MonsterDatCrypto.IsDecryptedMonsterFile(plain))
+                    throw new InvalidDataException("الناتج لا يشبه Monster.dat الخاص بـ 5517. قد يكون الملف من إصدار أو تشفير مختلف.");
+                File.WriteAllBytes(save.FileName, plain);
+                return (Sections: CountMonsterSections(plain), Hash: MonsterDatCrypto.Sha256(encrypted));
+            });
+
+            _monsterTextPath.Text = save.FileName;
+            _monsterStatus.Text = $"تم الفك بنجاح: {result.Sections} قسم. SHA-256 للأصل: {result.Hash[..12]}…";
+            _monsterStatus.ForeColor = Color.FromArgb(20, 125, 70);
+            MessageBox.Show(this,
+                $"تم فك Monster.dat بدون تعديل الأصل.\nعدد الأقسام: {result.Sections}\n\nاحفظ النص بنفس ترميز ANSI/GBK إذا عدّلته ببرنامج خارجي.",
+                "اكتمل", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            _monsterStatus.Text = "فشل فك Monster.dat.";
+            _monsterStatus.ForeColor = Color.Firebrick;
+            ShowError(FriendlyError(ex));
+        }
+        finally
+        {
+            SetMonsterBusy(false);
+        }
+    }
+
+    private async Task EncryptMonsterAsync()
+    {
+        var input = _monsterTextPath.Text.Trim();
+        if (!File.Exists(input))
+        {
+            ShowError("اختر ملف Monster.txt الصحيح بعد التعديل.");
+            return;
+        }
+
+        using var save = new SaveFileDialog
+        {
+            Title = "احفظ Monster.dat المشفّر",
+            Filter = "Monster.dat (*.dat)|*.dat|كل الملفات (*.*)|*.*",
+            FileName = "Monster.dat",
+            InitialDirectory = Path.GetDirectoryName(input)
+        };
+        if (save.ShowDialog(this) != DialogResult.OK) return;
+
+        SetMonsterBusy(true, "جارٍ تشفير Monster.dat...");
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                var plain = File.ReadAllBytes(input);
+                if (!MonsterDatCrypto.IsDecryptedMonsterFile(plain))
+                    throw new InvalidDataException("ملف النص لا يحتوي على أقسام Monster.dat سليمة.");
+
+                var encrypted = MonsterDatCrypto.Encrypt(plain);
+                var verification = MonsterDatCrypto.Decrypt(encrypted);
+                if (!plain.AsSpan().SequenceEqual(verification))
+                    throw new InvalidDataException("فشل اختبار التشفير الداخلي؛ لم تتم كتابة الملف.");
+
+                string? backup = null;
+                if (File.Exists(save.FileName))
+                {
+                    backup = Path.Combine(
+                        Path.GetDirectoryName(save.FileName) ?? Environment.CurrentDirectory,
+                        $"{Path.GetFileNameWithoutExtension(save.FileName)}.before-encrypt-{DateTime.Now:yyyyMMdd-HHmmss}{Path.GetExtension(save.FileName)}");
+                    File.Copy(save.FileName, backup, false);
+                }
+                File.WriteAllBytes(save.FileName, encrypted);
+                return (Backup: backup, Hash: MonsterDatCrypto.Sha256(encrypted));
+            });
+
+            _monsterDatPath.Text = save.FileName;
+            _monsterStatus.Text = $"تم التشفير والتحقق بنجاح. SHA-256: {result.Hash[..12]}…";
+            _monsterStatus.ForeColor = Color.FromArgb(20, 125, 70);
+            var backupText = result.Backup is null ? "لم يكن هناك ملف قديم لاستبداله." : $"النسخة الاحتياطية:\n{result.Backup}";
+            MessageBox.Show(this, $"تم إنشاء Monster.dat والتحقق من إمكانية فكه.\n{backupText}",
+                "اكتمل", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            _monsterStatus.Text = "فشل تشفير Monster.dat.";
+            _monsterStatus.ForeColor = Color.Firebrick;
+            ShowError(FriendlyError(ex));
+        }
+        finally
+        {
+            SetMonsterBusy(false);
+        }
+    }
+
+    private void SetMonsterBusy(bool busy, string? message = null)
+    {
+        _decryptMonster.Enabled = !busy;
+        _encryptMonster.Enabled = !busy;
+        _browseMonsterDat.Enabled = !busy;
+        _browseMonsterText.Enabled = !busy;
+        if (message is not null) _monsterStatus.Text = message;
+    }
+
+    private static int CountMonsterSections(ReadOnlySpan<byte> plain)
+    {
+        var count = 0;
+        var atLineStart = true;
+        foreach (var value in plain)
+        {
+            if (atLineStart && value == (byte)'[') count++;
+            atLineStart = value == (byte)'\n';
+        }
+        return count;
+    }
+
     private void PopulateResults(string iniDirectory)
     {
         _results.BeginUpdate();
@@ -496,6 +764,20 @@ public sealed class MainForm : Form
         };
         layout.Controls.Add(label, 0, row);
         layout.SetColumnSpan(label, 3);
+    }
+
+    private static void AddMonsterLabel(TableLayoutPanel layout, string text, int row)
+    {
+        var label = new Label
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.BottomRight,
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+            ForeColor = Navy
+        };
+        layout.Controls.Add(label, 0, row);
+        layout.SetColumnSpan(label, 2);
     }
 
     private static void ConfigureTextBox(TextBox box)

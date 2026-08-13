@@ -15,6 +15,8 @@ internal static class Program
                 return SelfTestExtract(args[1], args[2]);
             if (args.Length == 2 && args[0].Equals("--self-test-pack", StringComparison.OrdinalIgnoreCase))
                 return SelfTestPack(args[1]);
+            if (args.Length == 2 && args[0].Equals("--self-test-monster", StringComparison.OrdinalIgnoreCase))
+                return SelfTestMonster(args[1]);
 
             ApplicationConfiguration.Initialize();
             Application.Run(new MainForm());
@@ -62,6 +64,16 @@ internal static class Program
         {
             Environment.CurrentDirectory = previous;
         }
+    }
+
+    private static int SelfTestMonster(string inputDat)
+    {
+        if (!File.Exists(inputDat)) return 2;
+        var encrypted = File.ReadAllBytes(inputDat);
+        var plain = MonsterDatCrypto.Decrypt(encrypted);
+        if (!MonsterDatCrypto.IsDecryptedMonsterFile(plain)) return 3;
+        var roundTrip = MonsterDatCrypto.Encrypt(plain);
+        return encrypted.AsSpan().SequenceEqual(roundTrip) ? 0 : 4;
     }
 
     private static string FriendlyStartupError(Exception ex) => ex switch
