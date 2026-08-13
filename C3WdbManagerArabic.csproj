@@ -9,7 +9,7 @@
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <AssemblyName>C3 WDB Manager Arabic</AssemblyName>
     <Product>مدير ملفات C3 WDB العربي</Product>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

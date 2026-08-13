@@ -22,6 +22,13 @@ public sealed class MainForm : Form
     private readonly Button _decryptMonster = new();
     private readonly Button _encryptMonster = new();
     private readonly Label _monsterStatus = new();
+    private readonly TextBox _itemTypeDatPath = new();
+    private readonly TextBox _itemTypeTextPath = new();
+    private readonly Button _browseItemTypeDat = new();
+    private readonly Button _browseItemTypeText = new();
+    private readonly Button _decryptItemType = new();
+    private readonly Button _encryptItemType = new();
+    private readonly Label _itemTypeStatus = new();
     private readonly ListView _results = new();
     private readonly Label _status = new();
     private readonly ProgressBar _progress = new();
@@ -70,15 +77,110 @@ public sealed class MainForm : Form
         var unpackTab = new TabPage("فك ملف WDB") { BackColor = Surface, Padding = new Padding(20) };
         var packTab = new TabPage("إعادة بناء WDB") { BackColor = Surface, Padding = new Padding(20) };
         var monsterTab = new TabPage("Monster.dat") { BackColor = Surface, Padding = new Padding(20) };
+        var itemTypeTab = new TabPage("itemtype.dat") { BackColor = Surface, Padding = new Padding(20) };
         _tabs.TabPages.Add(unpackTab);
         _tabs.TabPages.Add(packTab);
         _tabs.TabPages.Add(monsterTab);
+        _tabs.TabPages.Add(itemTypeTab);
         Controls.Add(_tabs);
         _tabs.BringToFront();
 
         BuildUnpackTab(unpackTab);
         BuildPackTab(packTab);
         BuildMonsterTab(monsterTab);
+        BuildItemTypeTab(itemTypeTab);
+    }
+
+    private void BuildItemTypeTab(Control tab)
+    {
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 9,
+            Padding = new Padding(8),
+            RightToLeft = RightToLeft.Yes
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        tab.Controls.Add(layout);
+
+        var title = new Label
+        {
+            Text = "فك وتشفير itemtype.dat وتوحيده مع سورس 5517",
+            Font = new Font("Segoe UI", 15F, FontStyle.Bold),
+            ForeColor = Navy,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleRight
+        };
+        layout.Controls.Add(title, 0, 0);
+        layout.SetColumnSpan(title, 2);
+
+        var help = new Label
+        {
+            Text = "يفك ملف الكلينت إلى itemtype.txt بنفس البايتات والترميز. الناتج يطابق صيغة @@ التي يقرأها سورسنا، مع فحص عدد الصفوف والأعمدة قبل الحفظ.",
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(70, 80, 95),
+            TextAlign = ContentAlignment.MiddleRight
+        };
+        layout.Controls.Add(help, 0, 1);
+        layout.SetColumnSpan(help, 2);
+
+        AddMonsterLabel(layout, "ملف itemtype.dat المشفّر من الكلينت", 2);
+        ConfigureTextBox(_itemTypeDatPath);
+        layout.Controls.Add(_itemTypeDatPath, 0, 3);
+        ConfigureBrowseButton(_browseItemTypeDat, "اختيار DAT");
+        _browseItemTypeDat.Click += BrowseItemTypeDat;
+        layout.Controls.Add(_browseItemTypeDat, 1, 3);
+
+        var decryptActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Padding(0, 10, 0, 8)
+        };
+        ConfigurePrimaryButton(_decryptItemType, "فك إلى itemtype.txt");
+        _decryptItemType.Size = new Size(210, 42);
+        _decryptItemType.Click += async (_, _) => await DecryptItemTypeAsync();
+        decryptActions.Controls.Add(_decryptItemType);
+        layout.Controls.Add(decryptActions, 0, 4);
+        layout.SetColumnSpan(decryptActions, 2);
+
+        AddMonsterLabel(layout, "ملف itemtype.txt بعد التعديل أو للمصدر", 5);
+        ConfigureTextBox(_itemTypeTextPath);
+        layout.Controls.Add(_itemTypeTextPath, 0, 6);
+        ConfigureBrowseButton(_browseItemTypeText, "اختيار TXT");
+        _browseItemTypeText.Click += BrowseItemTypeText;
+        layout.Controls.Add(_browseItemTypeText, 1, 6);
+
+        var encryptActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Padding(0, 10, 0, 8)
+        };
+        ConfigurePrimaryButton(_encryptItemType, "تشفير إلى itemtype.dat");
+        _encryptItemType.Size = new Size(220, 42);
+        _encryptItemType.Click += async (_, _) => await EncryptItemTypeAsync();
+        encryptActions.Controls.Add(_encryptItemType);
+        layout.Controls.Add(encryptActions, 0, 7);
+        layout.SetColumnSpan(encryptActions, 2);
+
+        _itemTypeStatus.Text = "اختر itemtype.dat لفكه، أو itemtype.txt لإعادة تشفيره للكلينت.";
+        _itemTypeStatus.Dock = DockStyle.Top;
+        _itemTypeStatus.ForeColor = Color.FromArgb(70, 80, 95);
+        _itemTypeStatus.Padding = new Padding(8, 14, 8, 8);
+        layout.Controls.Add(_itemTypeStatus, 0, 8);
+        layout.SetColumnSpan(_itemTypeStatus, 2);
     }
 
     private void BuildMonsterTab(Control tab)
@@ -449,6 +551,163 @@ public sealed class MainForm : Form
         {
             _pack.Enabled = true;
         }
+    }
+
+    private void BrowseItemTypeDat(object? sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "اختر ملف itemtype.dat المشفّر",
+            Filter = "itemtype.dat (*.dat)|*.dat|كل الملفات (*.*)|*.*",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        _itemTypeDatPath.Text = dialog.FileName;
+        _itemTypeTextPath.Text = Path.Combine(
+            Path.GetDirectoryName(dialog.FileName) ?? Environment.CurrentDirectory,
+            Path.GetFileNameWithoutExtension(dialog.FileName) + ".txt");
+        _itemTypeStatus.Text = "جاهز للفك. ملف DAT الأصلي لن يتم تعديله.";
+    }
+
+    private void BrowseItemTypeText(object? sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "اختر itemtype.txt بعد التعديل",
+            Filter = "ملفات النص (*.txt)|*.txt|كل الملفات (*.*)|*.*",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        _itemTypeTextPath.Text = dialog.FileName;
+    }
+
+    private async Task DecryptItemTypeAsync()
+    {
+        var input = _itemTypeDatPath.Text.Trim();
+        if (!File.Exists(input))
+        {
+            ShowError("اختر ملف itemtype.dat صحيح أولًا.");
+            return;
+        }
+
+        var suggested = string.IsNullOrWhiteSpace(_itemTypeTextPath.Text)
+            ? Path.ChangeExtension(input, ".txt")
+            : _itemTypeTextPath.Text.Trim();
+        using var save = new SaveFileDialog
+        {
+            Title = "احفظ itemtype.txt المفكوك",
+            Filter = "ملفات النص (*.txt)|*.txt|كل الملفات (*.*)|*.*",
+            FileName = Path.GetFileName(suggested),
+            InitialDirectory = Path.GetDirectoryName(suggested)
+        };
+        if (save.ShowDialog(this) != DialogResult.OK) return;
+
+        SetItemTypeBusy(true, "جارٍ فك itemtype.dat...");
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                var encrypted = File.ReadAllBytes(input);
+                var plain = ItemTypeDatCrypto.Decrypt(encrypted);
+                if (!ItemTypeDatCrypto.TryAnalyze(plain, out var analysis, out var error))
+                    throw new InvalidDataException($"الناتج ليس itemtype.dat صالحًا لسورس 5517: {error}");
+
+                File.WriteAllBytes(save.FileName, plain);
+                return (analysis.Rows, analysis.MinimumColumns, analysis.MaximumColumns,
+                    Hash: ItemTypeDatCrypto.Sha256(encrypted));
+            });
+
+            _itemTypeTextPath.Text = save.FileName;
+            _itemTypeStatus.Text = $"تم الفك: {result.Rows:N0} Item، والأعمدة {result.MinimumColumns}-{result.MaximumColumns}.";
+            _itemTypeStatus.ForeColor = Color.FromArgb(20, 125, 70);
+            MessageBox.Show(this,
+                $"تم فك itemtype.dat بدون تعديل الأصل.\nعدد الـItems: {result.Rows:N0}\nعدد الأعمدة: {result.MinimumColumns}-{result.MaximumColumns}\n\nالناتج صالح لصيغة @@ التي يقرأها سورس 5517، لكن خذ نسخة احتياطية من itemtype.txt في Database قبل استبداله.",
+                "اكتمل", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            _itemTypeStatus.Text = "فشل فك itemtype.dat.";
+            _itemTypeStatus.ForeColor = Color.Firebrick;
+            ShowError(FriendlyError(ex));
+        }
+        finally
+        {
+            SetItemTypeBusy(false);
+        }
+    }
+
+    private async Task EncryptItemTypeAsync()
+    {
+        var input = _itemTypeTextPath.Text.Trim();
+        if (!File.Exists(input))
+        {
+            ShowError("اختر ملف itemtype.txt صحيحًا أولًا.");
+            return;
+        }
+
+        using var save = new SaveFileDialog
+        {
+            Title = "احفظ itemtype.dat المشفّر للكلينت",
+            Filter = "itemtype.dat (*.dat)|*.dat|كل الملفات (*.*)|*.*",
+            FileName = "itemtype.dat",
+            InitialDirectory = Path.GetDirectoryName(input)
+        };
+        if (save.ShowDialog(this) != DialogResult.OK) return;
+
+        SetItemTypeBusy(true, "جارٍ تشفير itemtype.dat...");
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                var plain = File.ReadAllBytes(input);
+                if (!ItemTypeDatCrypto.TryAnalyze(plain, out var analysis, out var error))
+                    throw new InvalidDataException($"ملف itemtype.txt غير صالح لسورس 5517: {error}");
+
+                var encrypted = ItemTypeDatCrypto.Encrypt(plain);
+                var verification = ItemTypeDatCrypto.Decrypt(encrypted);
+                if (!plain.AsSpan().SequenceEqual(verification))
+                    throw new InvalidDataException("فشل اختبار التشفير الداخلي؛ لم تتم كتابة الملف.");
+
+                string? backup = null;
+                if (File.Exists(save.FileName))
+                {
+                    backup = Path.Combine(
+                        Path.GetDirectoryName(save.FileName) ?? Environment.CurrentDirectory,
+                        $"{Path.GetFileNameWithoutExtension(save.FileName)}.before-encrypt-{DateTime.Now:yyyyMMdd-HHmmss}{Path.GetExtension(save.FileName)}");
+                    File.Copy(save.FileName, backup, false);
+                }
+                File.WriteAllBytes(save.FileName, encrypted);
+                return (analysis.Rows, Backup: backup, Hash: ItemTypeDatCrypto.Sha256(encrypted));
+            });
+
+            _itemTypeDatPath.Text = save.FileName;
+            _itemTypeStatus.Text = $"تم التشفير والتحقق: {result.Rows:N0} Item. SHA-256: {result.Hash[..12]}…";
+            _itemTypeStatus.ForeColor = Color.FromArgb(20, 125, 70);
+            var backupText = result.Backup is null ? "لم يكن هناك ملف قديم لاستبداله." : $"النسخة الاحتياطية:\n{result.Backup}";
+            MessageBox.Show(this,
+                $"تم إنشاء itemtype.dat والتحقق من فكه byte-for-byte.\nعدد الـItems: {result.Rows:N0}\n{backupText}",
+                "اكتمل", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            _itemTypeStatus.Text = "فشل تشفير itemtype.dat.";
+            _itemTypeStatus.ForeColor = Color.Firebrick;
+            ShowError(FriendlyError(ex));
+        }
+        finally
+        {
+            SetItemTypeBusy(false);
+        }
+    }
+
+    private void SetItemTypeBusy(bool busy, string? message = null)
+    {
+        _decryptItemType.Enabled = !busy;
+        _encryptItemType.Enabled = !busy;
+        _browseItemTypeDat.Enabled = !busy;
+        _browseItemTypeText.Enabled = !busy;
+        if (message is not null) _itemTypeStatus.Text = message;
     }
 
     private void BrowseMonsterDat(object? sender, EventArgs e)

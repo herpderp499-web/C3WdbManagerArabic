@@ -17,6 +17,10 @@ internal static class Program
                 return SelfTestPack(args[1]);
             if (args.Length == 2 && args[0].Equals("--self-test-monster", StringComparison.OrdinalIgnoreCase))
                 return SelfTestMonster(args[1]);
+            if (args.Length == 2 && args[0].Equals("--self-test-itemtype", StringComparison.OrdinalIgnoreCase))
+                return SelfTestItemType(args[1]);
+            if (args.Length == 3 && args[0].Equals("--decrypt-itemtype", StringComparison.OrdinalIgnoreCase))
+                return DecryptItemType(args[1], args[2]);
 
             ApplicationConfiguration.Initialize();
             Application.Run(new MainForm());
@@ -74,6 +78,25 @@ internal static class Program
         if (!MonsterDatCrypto.IsDecryptedMonsterFile(plain)) return 3;
         var roundTrip = MonsterDatCrypto.Encrypt(plain);
         return encrypted.AsSpan().SequenceEqual(roundTrip) ? 0 : 4;
+    }
+
+    private static int SelfTestItemType(string inputDat)
+    {
+        if (!File.Exists(inputDat)) return 2;
+        var encrypted = File.ReadAllBytes(inputDat);
+        var plain = ItemTypeDatCrypto.Decrypt(encrypted);
+        if (!ItemTypeDatCrypto.TryAnalyze(plain, out _, out _)) return 3;
+        var roundTrip = ItemTypeDatCrypto.Encrypt(plain);
+        return encrypted.AsSpan().SequenceEqual(roundTrip) ? 0 : 4;
+    }
+
+    private static int DecryptItemType(string inputDat, string outputText)
+    {
+        if (!File.Exists(inputDat)) return 2;
+        var plain = ItemTypeDatCrypto.Decrypt(File.ReadAllBytes(inputDat));
+        if (!ItemTypeDatCrypto.TryAnalyze(plain, out _, out _)) return 3;
+        File.WriteAllBytes(outputText, plain);
+        return 0;
     }
 
     private static string FriendlyStartupError(Exception ex) => ex switch

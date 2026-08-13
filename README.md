@@ -17,6 +17,13 @@
 - واجهة عربية ورسائل خطأ مفهومة بدل رسائل الأداة الصينية القديمة.
 - فك `Monster.dat` إلى ملف INI نصي وإعادة تشفيره بعد التعديل.
 
+### itemtype.dat (5517)
+
+1. Open the **itemtype.dat** tab and select the encrypted client file.
+2. Decrypt it to `itemtype.txt`. The tool validates `@@` rows and the minimum column count required by the 5517 server parser.
+3. The byte-preserving text output can be used as the server Database `itemtype.txt` after backing up the current file.
+4. Re-encrypt an edited `itemtype.txt` for the client with automatic round-trip verification and backup.
+
 ### Monster.dat (5517)
 
 1. افتح تبويب **Monster.dat** واختر ملف DAT.
